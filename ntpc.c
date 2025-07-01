@@ -11,6 +11,10 @@
 #include <sys/time.h>
 #include <signal.h>
 #include <syslog.h>
+#include <fcntl.h>
+#include <sys/ioctl.h>
+#include <linux/rtc.h>
+#include <errno.h>
 
 #define I_MISC		0
 #define I_ORTIME	6
@@ -23,6 +27,9 @@
 #else
 #define _dprintf(args...)       do { } while(0)
 #endif
+
+
+void syncToRTC();
 
 
 // 0 = ok, 1 = failed, 2 = permanent failure
@@ -127,6 +134,8 @@ static int ntpc(struct in_addr addr)
 
 						strftime(s, sizeof(s), "%a, %d %b %Y %H:%M:%S %z", localtime(&tv.tv_sec));
 						sprintf(q, "Time Updated: %s [%s%lds]", s, diff > 0 ? "+" : "", diff);
+
+						syncToRTC();
 					}
 					else {
 						t = time(0);
@@ -145,6 +154,39 @@ static int ntpc(struct in_addr addr)
 	return 1;
 }
 
+
+void syncToRTC()
+{
+	int fd = 0;
+	struct timeval tv;
+	struct tm localtm;
+	//struct rtc_time rtctm;
+	char s[64];
+
+	gettimeofday(&tv, NULL);
+	localtime_r(&tv.tv_sec, &localtm);
+
+	strftime(s, sizeof(s), "%a, %d %b %Y %H:%M:%S %z", &localtm);
+	printf("syncToRTC(): %s\n", s);
+
+	fd = open("/dev/rtc0", O_RDONLY);
+	if (fd == -1)
+	{
+		printf("ERROR: can't open /dev/rtc0 ...\n");
+		return;
+	}
+
+	int ret = ioctl(fd, RTC_SET_TIME, &localtm);
+	if(ret == -1)
+	{
+		close(fd);
+		printf("ERROR: can't set RTC...: %s\n", strerror(errno));
+		return;
+	}
+
+	close(fd);
+	return;
+}
 
 // -----------------------------------------------------------------------------
 
