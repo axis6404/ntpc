@@ -155,13 +155,14 @@ int main(int argc, char **argv)
 	struct in_addr ia;
 	const char *s;
 	int i;
+	const char *cDefaultNtpServer = "1.jp.pool.ntp.org";
 
 	for (i = 1; i < argc; ++i) {
 		if ((he = gethostbyname(argv[i])) != NULL) {
 			memcpy(&ia, he->h_addr_list[0], sizeof(ia));
 			s = inet_ntoa(ia);
-			if (strcmp(s, argv[i]) == 0) printf("Trying %s: ", s);
-				else printf("Trying %s [%s]:", argv[i], s);
+			if (strcmp(s, argv[i]) == 0) printf("Trying %s: \n", s);
+				else printf("Trying %s [%s]:\n", argv[i], s);
 			if (ntpc(ia) == 0) return 0;
 		}
 		else {
@@ -171,7 +172,19 @@ int main(int argc, char **argv)
 
 	if (argc < 2) {
 		printf("Usage: ntpc <server>\n");
-		printf("Example: ntpc 0.asia.pool.ntp.org 1.asia.pool.ntp.org 2.asia.pool.ntp.org\n");
+		printf("Example: ntpc 0.asia.pool.ntp.org 1.asia.pool.ntp.org 2.asia.pool.ntp.org\n\n");
+		printf("Use default ntp server: %s\n\n", cDefaultNtpServer);
+
+		if ((he = gethostbyname(cDefaultNtpServer)) != NULL) {
+			memcpy(&ia, he->h_addr_list[0], sizeof(ia));
+			s = inet_ntoa(ia);
+			if (strcmp(s, cDefaultNtpServer) == 0) printf("Trying %s: \n", s);
+				else printf("Trying %s [%s]:\n", cDefaultNtpServer, s);
+			if (ntpc(ia) == 0) return 0;
+		}
+		else {
+			printf("Unable to resolve: %s\n", cDefaultNtpServer);
+		}
 	}
 
 	return 1;
